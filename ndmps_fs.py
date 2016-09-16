@@ -3,9 +3,7 @@ import numpy as np
 import nengo
 import nengo.utils.function_space
 
-# from point_attractor import gen_point_attractor
-import point_attractor
-reload(point_attractor)
+from point_attractor import gen_point_attractor
 from forcing_functions import gen_forcing_functions
 
 nengo.dists.Function = nengo.utils.function_space.Function
@@ -54,8 +52,8 @@ with model:
     goal = nengo.Node(output=goal_func, size_in=1)
     nengo.Connection(number, goal)
 
-    x = point_attractor.gen_point_attractor_net(model, goal[0], n_neurons=1000)
-    y = point_attractor.gen_point_attractor_net(model, goal[1], n_neurons=1000)
+    x = gen_point_attractor_net(model, goal[0], n_neurons=1000)
+    y = gen_point_attractor_net(model, goal[1], n_neurons=1000)
 
     # -------------------- Ramp ------------------------------
     def ramp_func(t):
