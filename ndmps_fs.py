@@ -3,7 +3,9 @@ import numpy as np
 import nengo
 import nengo.utils.function_space
 
-from point_attractor import gen_point_attractor
+# from point_attractor import gen_point_attractor
+import point_attractor
+reload(point_attractor)
 from forcing_functions import gen_forcing_functions
 
 nengo.dists.Function = nengo.utils.function_space.Function
@@ -19,13 +21,23 @@ force_space = []
 for ii in range(10):
     y_des = np.load('trajectories/%i.npz' % ii)['arr_0']
     goals.append([y_des[0], y_des[-1]])
-    forces, _ = gen_forcing_functions(y_des, num_samples=n_domain_samples)
+    forces, _ = gen_forcing_functions(y_des, n_samples=n_domain_samples)
     force_space.append(forces)
 # make an array out of all the possible functions we want to represent
 force_space = np.vstack(force_space)
 
 # use this array as our space to perform svd over
 fs = nengo.FunctionSpace(space=force_space, n_basis=6)
+
+# store the weights for each number
+weights_x = []
+weights_y = []
+for ii in range(10):
+    forces = force_space[ii*2:ii*2+2]
+    # load up the forces to be output by the forcing function
+    # calculate the corresponding weights over the basis functions
+    weights_x.append(np.dot(fs.basis.T, forces[0]))
+    weights_y.append(np.dot(fs.basis.T, forces[1]))
 
 model = nengo.Network()
 with model:
@@ -42,8 +54,8 @@ with model:
     goal = nengo.Node(output=goal_func, size_in=1)
     nengo.Connection(number, goal)
 
-    x = gen_point_attractor(model, goal[0], n_neurons=500)
-    y = gen_point_attractor(model, goal[1], n_neurons=500)
+    x = point_attractor.gen_point_attractor_net(model, goal[0], n_neurons=1000)
+    y = point_attractor.gen_point_attractor_net(model, goal[1], n_neurons=1000)
 
     # -------------------- Ramp ------------------------------
     def ramp_func(t):
@@ -58,13 +70,9 @@ with model:
     # ------------------- Forcing Functions --------------------
 
     def dmp_weights_func(t, x):
-        x = min(max(x, 0), 9)
-        forces = force_space[int(x)*2:int(x)*2+2]
-        # load up the forces to be output by the forcing function
-        # calculate the corresponding weights over the basis functions
-        weights_x = np.dot(fs.basis.T, forces[0])
-        weights_y = np.dot(fs.basis.T, forces[1])
-        return np.hstack([weights_x, weights_y])
+        x = int(min(max(x, 0), 9))
+        # load weights for generating this number's x and y forces
+        return np.hstack([weights_x[x], weights_y[x]])
 
     # create input switch for generating weights for different numbers
     dmp_weights_gen = nengo.Node(output=dmp_weights_func,
@@ -102,11 +110,8 @@ with model:
             # function to generate find the value of the
             # basis function at a specified value of x
             def basis_fn(x, jj=ii):
-                index = int(x[0]*100+100)
-                if index > 199:
-                    index = 199
-                if index < 0:
-                    index = 0
+                index = int(x[0] * len(domain) / 2.0 + len(domain) / 2.0)
+                index = max(min(index, len(domain) - 1), 0)
                 return fs.basis[index][jj]*fs.scale/max_basis
             # multiply the value of each basis function at x by its weight
             nengo.Connection(ramp, product.B[ii], function=basis_fn)
@@ -124,15 +129,15 @@ with model:
     nengo.Connection(product_y.output, relay[1],
                      transform=np.ones((1, fs.n_basis)) * max_basis)
 
-    nengo.Connection(relay[0], x[1], synapse=None)
-    nengo.Connection(relay[1], y[1], synapse=None)
+    nengo.Connection(relay[0], x.input, synapse=None)
+    nengo.Connection(relay[1], y.input, synapse=None)
 
     # -------------------- Output ------------------------------
 
     output = nengo.Ensemble(n_neurons=1, dimensions=2,
                             neuron_type=nengo.Direct())
-    nengo.Connection(x[0], output[0], synapse=.01)
-    nengo.Connection(y[0], output[1], synapse=.01)
+    nengo.Connection(x.output, output[0], synapse=.01)
+    nengo.Connection(y.output, output[1], synapse=.01)
 
     # create a node to give a plot of the represented function
     ff_plot = fs.make_plot_node(domain=domain, lines=2, min_y=-30, max_y=30)
