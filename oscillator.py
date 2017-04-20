@@ -3,7 +3,7 @@ import numpy as np
 import nengo
 
 
-def gen_oscillator(model, n_neurons=500, speed=.05):
+def generate(model, n_neurons=500, speed=.05):
     with model:
         # ------------------ Oscillator -------------------
         osc = nengo.Ensemble(n_neurons=n_neurons, dimensions=2,
@@ -19,7 +19,7 @@ if __name__ == '__main__':
 
     model = nengo.Network('Oscillator')
     with model:
-        osc = gen_oscillator(model=model)
+        osc = generate(model=model)
         probe_osc = nengo.Probe(osc, synapse=.1)
 
     sim = nengo.Simulator(model)
@@ -42,5 +42,5 @@ if __name__ == '__main__':
     plt.xlabel('time (s)')
 
     plt.tight_layout()
-    plt.savefig('Figure2-oscillator.pdf', format='pdf')
+    plt.savefig('oscillator.pdf', format='pdf')
     plt.show()
