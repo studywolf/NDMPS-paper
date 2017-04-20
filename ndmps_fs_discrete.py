@@ -4,6 +4,7 @@ import nengo
 import nengo.utils.function_space
 
 import forcing_functions
+import goal_network
 import point_attractor
 
 nengo.dists.Function = nengo.utils.function_space.Function
@@ -19,6 +20,7 @@ def generate(data_folder, net=None):
     force_space = np.vstack(forces)
     # use this array as our space to perform svd over
     fs = nengo.FunctionSpace(space=force_space, n_basis=10)
+    range_goals = np.array(range(len(goals)))
 
     # store the weights for each number
     weights_x = []
@@ -32,23 +34,21 @@ def generate(data_folder, net=None):
 
     if net is None:
         net = nengo.Network()
-    # net.config[nengo.Ensemble].neuron_type = nengo.Direct()
+    net.config[nengo.Ensemble].neuron_type = nengo.Direct()
     with net:
 
-        time_func = lambda t: min(max((t * 1) % 4.5 - 2.5, -1), 1)
-        net.number = nengo.Node(size_in=1, size_out=1)
+        time_func = lambda t: min(max((t * 1) % 4 - 2.5, -1), 1)
+        timer_node = nengo.Node(output=time_func)
+        net.number = nengo.Node(output=lambda t, x: x / (len(goals) / 2.0) - 1,
+                                size_in=1, size_out=1)
         # ------------------- Point Attractors --------------------
 
-        def goal_func(t, x):
-            t = time_func(t)
-            if t <= -1:
-                return goals[int(x)][0]
-            return goals[int(x)][1]
-        goal = nengo.Node(output=goal_func, size_in=1, size_out=2)
-        nengo.Connection(net.number, goal)
+        goal_net = goal_network.generate(goals)
+        nengo.Connection(net.number, goal_net.input)
+        nengo.Connection(timer_node, goal_net.timer_node)
 
-        x = point_attractor.generate(goal[0], n_neurons=1000)
-        y = point_attractor.generate(goal[1], n_neurons=1000)
+        x = point_attractor.generate(goal_net.output[0], n_neurons=1000)
+        y = point_attractor.generate(goal_net.output[1], n_neurons=1000)
 
         # -------------------- Ramp ------------------------------
         ramp_node = nengo.Node(output=time_func)
@@ -56,17 +56,6 @@ def generate(data_folder, net=None):
         nengo.Connection(ramp_node, ramp)
 
         # ------------------- Forcing Functions --------------------
-
-        def dmp_weights_func(t, x):
-            x = int(min(max(x, 0), len(goals)))
-            # load weights for generating this number's x and y forces
-            return np.hstack([weights_x[x], weights_y[x]])
-
-        # create input switch for generating weights for different numbers
-        dmp_weights_gen = nengo.Node(output=dmp_weights_func,
-                                     size_in=1,
-                                     size_out=fs.n_basis * 2)
-        nengo.Connection(net.number, dmp_weights_gen)
 
         # n_basis_functions dimensions to represent the weights, + 1 to
         # represent the x position to decode from
@@ -76,9 +65,29 @@ def generate(data_folder, net=None):
         ff_y = nengo.Ensemble(n_neurons=1000,
                               dimensions=fs.n_basis,
                               radius=np.sqrt(fs.n_basis))
-        # hook up input
-        nengo.Connection(dmp_weights_gen[:fs.n_basis], ff_x)
-        nengo.Connection(dmp_weights_gen[fs.n_basis:], ff_y)
+
+        def dmp_weights_func(x, x_or_y):
+            # find the nearest value
+            num = range_goals[min(
+                max(np.abs(range_goals - ((x+1)*len(goals)/2.0)).argmin(),
+                    0),
+                len(goals))]
+            # load weights for generating this number's x and y forces
+            if x_or_y == 'x':
+                return weights_x[num]
+            elif x_or_y == 'y':
+                return weights_y[num]
+
+        # generate weights for different numbers
+        dmp_weights_gen = nengo.Ensemble(n_neurons=2000, dimensions=1,)
+                                         # neuron_type=nengo.LIF())
+        nengo.Connection(net.number, dmp_weights_gen)
+        nengo.Connection(dmp_weights_gen, ff_x,
+                         function=lambda x: dmp_weights_func(x, x_or_y='x'),
+                         synapse=.01)
+        nengo.Connection(dmp_weights_gen, ff_y,
+                         function=lambda x: dmp_weights_func(x, x_or_y='y'),
+                         synapse=.01)
 
         # -------------------- Product for decoding -----------------------
 
