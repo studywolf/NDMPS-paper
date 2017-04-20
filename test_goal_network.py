@@ -17,7 +17,7 @@ with model:
     gn = generate(goals)
     nengo.Connection(number, num_relay)
     nengo.Connection(num_relay, gn.input)
-    nengo.Connection(timer_node, gn.timer_node)
+    nengo.Connection(timer_node, gn.inhibit_node)
     probe = nengo.Probe(gn.output)
 
 # sim = nengo.Simulator(model)
