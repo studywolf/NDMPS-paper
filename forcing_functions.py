@@ -10,11 +10,14 @@ def generate(y_des, dt=.001, n_samples=1000,
              plotting=False):
 
     # scale our trajectory and find the center point
-    y_des -= y_des[:, 0][:, None] # set start point to (0, 0)
+    center = np.sum(y_des, axis=1) / y_des.shape[1]
+    # center trajectory around (0, 0)
+    y_des -= center[:, None]
     if rhythmic is True:
-        goal = np.sum(y_des, axis=1) / y_des.shape[1]
+        goal = center
     else:
-        goal = np.copy(y_des[:, -1])
+        start = y_des[:, 0]
+        goal = y_des[:, -1]
 
     # interpolate our desired trajectory to smooth out the sampling
     path = np.zeros((y_des.shape[0], n_samples))
@@ -87,6 +90,8 @@ def generate(y_des, dt=.001, n_samples=1000,
         plt.tight_layout()
         plt.show()
 
+    if rhythmic is False:
+        goal = [start, goal]
     return forces, forcing_functions, goal
 
 

@@ -12,7 +12,7 @@ def generate(data_file, net=None):
 
     # generate the forcing function
     y_des = np.load(data_file)['arr_0'].T
-    forces, _, goal = forcing_functions.generate(y_des=y_des, rhythmic=False)
+    forces, _, goals = forcing_functions.generate(y_des=y_des, rhythmic=False)
 
     if net is None:
         net = nengo.Network(label='Discrete NDMP')
@@ -28,8 +28,8 @@ def generate(data_file, net=None):
         def goal_func(t):
             t = time_func(t)
             if t <= -1:
-                return [0, 0]
-            return goal
+                return goals[0]
+            return goals[1]
         net.goal = nengo.Node(output=goal_func, label='goal')
 
         x = point_attractor.generate(net.goal[0], n_neurons=1000)

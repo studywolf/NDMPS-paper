@@ -42,8 +42,8 @@ def generate(data_folder, net=None):
         def goal_func(t, x):
             t = time_func(t)
             if t <= -1:
-                return [0, 0]
-            return goals[int(x)]
+                return goals[int(x)][0]
+            return goals[int(x)][1]
         goal = nengo.Node(output=goal_func, size_in=1, size_out=2)
         nengo.Connection(net.number, goal)
 
