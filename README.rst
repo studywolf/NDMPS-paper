@@ -10,10 +10,10 @@ with them.
 
 To load in new trajectories, save a (movement_length, 2) vector with
 
-```
-import numpy as np
-np.savez_compressed(filename, trajectory_vector)
-```
+.. code-block:: python
+
+    import numpy as np
+    np.savez_compressed(filename, trajectory_vector)
 
 in the trajectories folder. The function space scripts will auto-load this
 file, and the vector space scripts can load it by name.
