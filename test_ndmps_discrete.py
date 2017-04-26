@@ -14,10 +14,10 @@ with model:
     ndmps_r = generate(data_file='trajectories/3.npz')
     probe = nengo.Probe(ndmps_r.output, synapse=.1)
 
-sim = nengo.Simulator(model)
-sim.run(2)
-
-t = sim.trange()
+# sim = nengo.Simulator(model)
+# sim.run(2)
+#
+# t = sim.trange()
 # plt.figure(figsize=(7, 3.5))
 # plt.plot(t, sim.data[probe])
 # plt.plot(t, np.ones(t.shape[0]) * target, 'r--', lw=2)

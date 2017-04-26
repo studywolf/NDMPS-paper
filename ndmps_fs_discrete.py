@@ -45,7 +45,7 @@ def generate(data_folder, net=None):
 
         goal_net = goal_network.generate(goals)
         nengo.Connection(net.number, goal_net.input)
-        nengo.Connection(timer_node, goal_net.timer_node)
+        nengo.Connection(timer_node, goal_net.inhibit_node)
 
         x = point_attractor.generate(goal_net.output[0], n_neurons=1000)
         y = point_attractor.generate(goal_net.output[1], n_neurons=1000)

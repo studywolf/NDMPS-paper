@@ -48,6 +48,8 @@ def generate(y_des, dt=.001, n_samples=1000,
         pa_forces.append(alpha * (beta * (goal[ii] - y_des[ii]) - dy_des[ii]))
 
         forces.append(ddy_des[ii] - pa_forces[ii])
+        # if rhythmic is False:
+        #     forces[ii] /= (goal[ii] - start[ii])
         # create the lookup table set for training oscillator output
         forcing_functions.append(
             nengo.utils.connection.target_function(
@@ -84,8 +86,8 @@ def generate(y_des, dt=.001, n_samples=1000,
         plt.subplot(2, 1, 2)
         plt.plot(forces[0])
         plt.plot(forces[1])
-        plt.plot(-pa_forces[0], alpha=.5)
-        plt.plot(-pa_forces[1], alpha=.5)
+        # plt.plot(-pa_forces[0], alpha=.5)
+        # plt.plot(-pa_forces[1], alpha=.5)
         plt.title('forcing function')
         plt.tight_layout()
         plt.show()
@@ -117,4 +119,4 @@ def load_folder(folder, rhythmic, plotting=False):
 
 if __name__ == '__main__':
 
-    load_folder('trajectories', rhythmic=True, plotting=True)
+    load_folder('trajectories', rhythmic=False, plotting=True)
