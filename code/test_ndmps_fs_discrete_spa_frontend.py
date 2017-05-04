@@ -8,12 +8,10 @@ import ndmps_fs_discrete_spa_frontend
 importlib.reload(ndmps_fs_discrete_spa_frontend)
 from ndmps_fs_discrete_spa_frontend import generate
 
-input_signals = ['ZERO']#, 'ONE', 'TWO', 'THREE', 'FOUR',
-                 # 'FIVE', 'SIX', 'SEVEN', 'EIGHT', 'NINE']
-# input_signals += [" + ".join(x) for x in
-#                  itertools.combinations(input_signals, 2)]
-# input_signals = ['ONE+SEVEN', 'TWO+SEVEN', 'THREE+FIVE', 'FOUR+FIVE',
-#                  'FOUR+SIX', 'FOUR+SEVEN', 'FOUR+NINE', 'FIVE+NINE']
+input_signals = ['ZERO', 'ONE', 'TWO', 'THREE', 'FOUR',
+                 'FIVE', 'SIX', 'SEVEN', 'EIGHT', 'NINE']
+input_signals += [" + ".join(x) for x in
+                 itertools.combinations(input_signals, 2)]
 
 print(input_signals)
 
