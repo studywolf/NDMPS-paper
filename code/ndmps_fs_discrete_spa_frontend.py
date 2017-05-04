@@ -15,9 +15,9 @@ nengo.FunctionSpace = nengo.utils.function_space.FunctionSpace
 def generate(input_signal):
 
     # Read in the class mean for numbers from vision network
-    weights_data = np.load('params.npz')
+    weights_data = np.load('mnist_vision_data/params.npz')
     weights = weights_data['Wc']
-    means_data = np.load('class_means.npz')
+    means_data = np.load('mnist_vision_data/class_means.npz')
     means = np.matrix(1.0 / means_data['means'])
     sps = np.multiply(weights.T, means.T)[:10]
     sps_labels = [
