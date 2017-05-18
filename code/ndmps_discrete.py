@@ -8,20 +8,20 @@ import point_attractor
 import forcing_functions
 
 
+alpha = 10.0
+beta = alpha / 4.0
 def generate(data_file, net=None):
 
     # generate the forcing function
     y_des = np.load(data_file)['arr_0'].T
-    forces, _, goals = forcing_functions.generate(y_des=y_des, rhythmic=False)
+    forces, _, goals = forcing_functions.generate(
+        y_des=y_des, rhythmic=False, alpha=alpha, beta=beta)
 
     if net is None:
         net = nengo.Network(label='Discrete NDMP')
     with net:
-        # --------------------- Inputs ------------------------------
-        net.input = nengo.Node(size_in=1, size_out=1)
-
         # create a start / stop movement signal
-        time_func = lambda t: min(max((t * 1) % 4.5 - 2.5, -1), 1)
+        time_func = lambda t: min(max((t * 2) % 4.5 - 2.5, -1), 1)
 
         # ------------------- Point Attractors ----------------------
 
@@ -32,8 +32,12 @@ def generate(data_file, net=None):
             return goals[1]
         net.goal = nengo.Node(output=goal_func, label='goal')
 
-        net.x = point_attractor.generate(net.goal[0], n_neurons=1000)
-        net.y = point_attractor.generate(net.goal[1], n_neurons=1000)
+        net.x = point_attractor.generate(
+            n_neurons=1000, alpha=alpha, beta=beta)
+        nengo.Connection(net.goal[0], net.x.input[0], synapse=None)
+        net.y = point_attractor.generate(
+            n_neurons=1000, alpha=alpha, beta=beta)
+        nengo.Connection(net.goal[1], net.y.input[0], synapse=None)
 
         # -------------------- Ramp ---------------------------------
         ramp_node = nengo.Node(output=time_func, label='ramp')
@@ -57,8 +61,8 @@ def generate(data_file, net=None):
         y_func = interpolate.interp1d(domain, forces[1])
         nengo.Connection(net.ramp, relay[0], function=x_func)
         nengo.Connection(net.ramp, relay[1], function=y_func)
-        nengo.Connection(relay[0], net.x.input)
-        nengo.Connection(relay[1], net.y.input)
+        nengo.Connection(relay[0], net.x.input[1], synapse=None)
+        nengo.Connection(relay[1], net.y.input[1], synapse=None)
 
         # -------------------- Output -------------------------------
 
