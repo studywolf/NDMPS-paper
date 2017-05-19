@@ -10,27 +10,19 @@ import point_attractor
 nengo.dists.Function = nengo.utils.function_space.Function
 nengo.FunctionSpace = nengo.utils.function_space.FunctionSpace
 
-
+alpha = 1000.0
+beta = alpha / 4.0
 def generate(data_folder, net=None):
 
     # generate the Function Space
     forces, _, goals = forcing_functions.load_folder(
-        data_folder, rhythmic=False)
+        data_folder, rhythmic=False, alpha=alpha, beta=beta)
     # make an array out of all the possible functions we want to represent
     force_space = np.vstack(forces)
     # use this array as our space to perform svd over
     fs = nengo.FunctionSpace(space=force_space, n_basis=10)
-    import matplotlib.pyplot as plt
-    plt.plot(fs.basis[:, :5])
-    plt.figure()
-    weights_x = np.dot(fs.basis.T, force_space[6])[:5]
-    weights_y = np.dot(fs.basis.T, force_space[7])[:5]
-    plt.bar(np.arange(.5, 5.5), weights_y, width=1)
-    plt.bar(np.arange(.5, 5.5), weights_x, width=1)
-    plt.axes().set_color_cycle(None)
-    plt.bar([4.5], -weights_x[-1], width=1)
-    plt.show()
     range_goals = np.array(range(len(goals)))
+    print(len(goals))
 
     # store the weights for each number
     weights_x = []
@@ -47,7 +39,7 @@ def generate(data_folder, net=None):
     net.config[nengo.Ensemble].neuron_type = nengo.Direct()
     with net:
 
-        time_func = lambda t: min(max((t * 1) % 4 - 2.5, -1), 1)
+        time_func = lambda t: min(max((t * 2) % 4 - 2.5, -1), 1)
         timer_node = nengo.Node(output=time_func)
         net.number = nengo.Node(output=lambda t, x: x / (len(goals) / 2.0) - 1,
                                 size_in=1, size_out=1)
@@ -57,8 +49,12 @@ def generate(data_folder, net=None):
         nengo.Connection(net.number, goal_net.input)
         nengo.Connection(timer_node, goal_net.inhibit_node)
 
-        x = point_attractor.generate(goal_net.output[0], n_neurons=1000)
-        y = point_attractor.generate(goal_net.output[1], n_neurons=1000)
+        net.x = point_attractor.generate(
+            n_neurons=1000, alpha=alpha, beta=beta)
+        nengo.Connection(goal_net.output[0], net.x.input[0], synapse=None)
+        net.y = point_attractor.generate(
+            n_neurons=1000, alpha=alpha, beta=beta)
+        nengo.Connection(goal_net.output[1], net.y.input[0], synapse=None)
 
         # -------------------- Ramp ------------------------------
         ramp_node = nengo.Node(output=time_func)
@@ -133,22 +129,24 @@ def generate(data_folder, net=None):
         relay = nengo.Node(output=relay_func, size_in=2, size_out=2)
 
         nengo.Connection(product_x.output, relay[0],
-                         transform=np.ones((1, fs.n_basis)) * max_basis)
+                         transform=np.ones((1, fs.n_basis)) * max_basis,
+                         synapse=None)
         nengo.Connection(product_y.output, relay[1],
-                         transform=np.ones((1, fs.n_basis)) * max_basis)
+                         transform=np.ones((1, fs.n_basis)) * max_basis,
+                         synapse=None)
 
-        nengo.Connection(relay[0], x.input, synapse=None)
-        nengo.Connection(relay[1], y.input, synapse=None)
+        nengo.Connection(relay[0], net.x.input[1], synapse=None)
+        nengo.Connection(relay[1], net.y.input[1], synapse=None)
 
         # -------------------- Output ------------------------------
 
         net.output = nengo.Node(size_in=2, size_out=2)
-        nengo.Connection(x.output, net.output[0], synapse=None)
-        nengo.Connection(y.output, net.output[1], synapse=None)
+        nengo.Connection(net.x.output, net.output[0], synapse=0.01)
+        nengo.Connection(net.y.output, net.output[1], synapse=0.01)
 
         # create a node to give a plot of the represented function
         ff_plot = fs.make_plot_node(domain=domain, lines=2,
-                                    min_y=-50, max_y=50)
+                                    ylim=[-50, 50])
         nengo.Connection(ff_x, ff_plot[:fs.n_basis], synapse=0.1)
         nengo.Connection(ff_y, ff_plot[fs.n_basis:], synapse=0.1)
 

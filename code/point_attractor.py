@@ -7,35 +7,25 @@ import numpy as np
 
 import nengo
 
-def generate(net=None, n_neurons=200, alpha=10.0, beta=10.0/4.0,
+def generate(net=None, n_neurons=200, alpha=1000.0, beta=1000.0/4.0,
              dt=0.001, analog=False):
-    tau = 0.05  # synaptic time constant
+    tau = 0.1  # synaptic time constant
     synapse = nengo.Lowpass(tau)
 
     # the A matrix for our point attractor
-    a = np.exp(-dt/tau)
     A = np.array([[0.0, 1.0],
                   [-alpha*beta, -alpha]])
 
     # the B matrix for our point attractor
     B = np.array([[0.0, 0.0], [alpha*beta, 1.0]])
 
-    if analog is False:
-        from nengolib.synapses import ss2sim
-        C = np.eye(2)
-        D = np.zeros((2, 2))
-        linsys = ss2sim((A, B, C, D), synapse=synapse, dt=dt)
-        A = linsys.A
-        B = linsys.B
-
-        # and then compensate for the discrete lowpass filter of synapse
-        A = 1.0 / (1.0 - a) * (A - a * np.eye(2))
-        B = 1.0 / (1.0 - a) * B
-
-    else:
-        A = tau * A + np.eye(2)
-        B = tau * B
-
+    from nengolib.synapses import ss2sim
+    C = np.eye(2)
+    D = np.zeros((2, 2))
+    linsys = ss2sim((A, B, C, D), synapse=synapse,
+                    dt=None if analog else dt)
+    A = linsys.A
+    B = linsys.B
 
     if net is None:
         net = nengo.Network(label='Point Attractor')
@@ -79,7 +69,7 @@ if __name__ == '__main__':
             probe_ans = nengo.Probe(goal)
             probe = nengo.Probe(pa.output, synapse=.01)
 
-        sim = nengo.Simulator(model, dt=.001)
+        sim = nengo.Simulator(model, dt=.0025)
         sim.run(time)
         probe_results.append(np.copy(sim.data[probe]))
 

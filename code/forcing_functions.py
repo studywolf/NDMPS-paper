@@ -131,7 +131,7 @@ def generate(y_des, dt=.001, n_samples=1000,
     return forces, forcing_functions, goal
 
 
-def load_folder(folder, rhythmic, plotting=False, generalized=False):
+def load_folder(folder, rhythmic, **kwargs):
 
     # generate the Function Space
     force_space = []
@@ -145,8 +145,7 @@ def load_folder(folder, rhythmic, plotting=False, generalized=False):
         # forces needed to generate them, this is our function space
         y_des = np.load(data_file)['arr_0'].T
         forces, force_function, goal = generate(
-            y_des, rhythmic=rhythmic, plotting=plotting,
-            generalized=generalized)
+            y_des, rhythmic=rhythmic, **kwargs)
         force_space.append(forces)
         force_functions.append(force_function)
         goals.append(goal)
@@ -156,5 +155,5 @@ def load_folder(folder, rhythmic, plotting=False, generalized=False):
 if __name__ == '__main__':
 
     load_folder('handwriting_trajectories',
-                rhythmic=False, plotting=True,
+                rhythmic=False, plotting=False,
                 generalized=True)

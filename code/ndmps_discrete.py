@@ -4,11 +4,13 @@ from scipy import interpolate
 import nengo
 import nengo.utils.function_space
 
+import importlib
 import point_attractor
+importlib.reload(point_attractor)
 import forcing_functions
 
 
-alpha = 10.0
+alpha = 1000.0
 beta = alpha / 4.0
 def generate(data_file, net=None):
 
@@ -67,7 +69,7 @@ def generate(data_file, net=None):
         # -------------------- Output -------------------------------
 
         net.output = nengo.Node(size_in=2, size_out=2)
-        nengo.Connection(net.x.output, net.output[0], synapse=.01)
-        nengo.Connection(net.y.output, net.output[1], synapse=.01)
+        nengo.Connection(net.x.output, net.output[0], synapse=0.01)
+        nengo.Connection(net.y.output, net.output[1], synapse=0.01)
 
     return net

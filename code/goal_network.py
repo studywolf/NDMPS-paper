@@ -32,16 +32,19 @@ def generate(goals, n_neurons=2000, net=None):
                                   label='goal off',
                                   neuron_type=nengo.LIF())
 
-        nengo.Connection(net.input, goal_on)
-        nengo.Connection(net.input, goal_off)
+        # connect input, don't account for synapse twice
+        nengo.Connection(net.input, goal_on, synapse=None)
+        nengo.Connection(net.input, goal_off, synapse=None)
 
         net.output = nengo.Node(size_in=2, size_out=2)
 
-        # inhibit on or off population output
+        # inhibit on or off population output, don't account for synapses twice
         nengo.Connection(net.inhibit_node[0], goal_on.neurons,
-                         transform=[[-3]]*goal_on.n_neurons)
+                         transform=[[-3]]*goal_on.n_neurons,
+                         synapse=None)
         nengo.Connection(net.inhibit_node[1], goal_off.neurons,
-                         transform=[[-3]]*goal_on.n_neurons)
+                         transform=[[-3]]*goal_on.n_neurons,
+                         synapse=None)
 
         def goal_onoff_func(x, on=True):
             num = range_goals[min(
@@ -53,8 +56,10 @@ def generate(goals, n_neurons=2000, net=None):
             return goals[num][1]
         # hook up on and off populations to output
         nengo.Connection(goal_on, net.output,
-                         function=lambda x: goal_onoff_func(x, on=True))
+                         function=lambda x: goal_onoff_func(x, on=True),
+                         synapse=None)  # don't account for synapse twice
         nengo.Connection(goal_off, net.output,
-                         function=lambda x: goal_onoff_func(x, on=False))
+                         function=lambda x: goal_onoff_func(x, on=False),
+                         synapse=None)  # don't account for synapse twice
 
     return net
