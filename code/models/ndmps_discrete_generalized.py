@@ -4,8 +4,8 @@ from scipy import interpolate
 import nengo
 import nengo.utils.function_space
 
-import point_attractor
-import forcing_functions
+from . import point_attractor
+from . import forcing_functions
 
 def angle(x):
    return np.arctan2(x[3]-x[1], x[2]-x[0])
@@ -14,19 +14,19 @@ def rotation_matrix(theta):
     return np.array([[np.cos(theta), -np.sin(theta)],
                      [np.sin(theta), np.cos(theta)]])
 
-def generate(data_file):
+def generate(data_file, alpha=1000.0):
+    beta = alpha / 4.0
 
     # generate the forcing function
     y_des = np.load(data_file)['arr_0'].T
     forces, _, goals = forcing_functions.generate(
-        y_des=y_des, rhythmic=False, generalized=True)
+        y_des=y_des, rhythmic=False, generalized=True,
+        alpha=alpha, beta=beta)
 
     net = nengo.Network(label='Discrete NDMP')
     # net.config[nengo.Ensemble].neuron_type = nengo.Direct()
     with net:
         # --------------------- Inputs ------------------------------
-        net.input = nengo.Node(size_in=1, size_out=1)
-
         # create a start / stop movement signal
         time_func = lambda t: min(max((t * .5) % 4.5 - 2.5, -1), 1)
 
@@ -55,8 +55,12 @@ def generate(data_file):
                               label='goal')
         nengo.Connection(net.goal_transformed, net.goal, synapse=None)
 
-        net.x = point_attractor.generate(net.goal[0], n_neurons=1000)
-        net.y = point_attractor.generate(net.goal[1], n_neurons=1000)
+        net.x = point_attractor.generate(
+            n_neurons=1000, alpha=alpha, beta=beta)
+        nengo.Connection(net.goal[0], net.x.input[0], synapse=None)
+        net.y = point_attractor.generate(
+            n_neurons=1000, alpha=alpha, beta=beta)
+        nengo.Connection(net.goal[1], net.y.input[0], synapse=None)
 
         # -------------------- Ramp ---------------------------------
         ramp_node = nengo.Node(output=time_func, label='ramp')
@@ -88,8 +92,8 @@ def generate(data_file):
             return xy
         nengo.Connection(net.goal_transformed[2], ramp[1])
         nengo.Connection(ramp, relay[:2], function=calc_ff)
-        nengo.Connection(relay[0], net.x.input)
-        nengo.Connection(relay[1], net.y.input)
+        nengo.Connection(relay[0], net.x.input[1], synapse=None)
+        nengo.Connection(relay[1], net.y.input[1], synapse=None)
 
         # -------------------- Output -------------------------------
 

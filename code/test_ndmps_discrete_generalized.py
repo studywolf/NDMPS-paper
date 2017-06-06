@@ -3,9 +3,9 @@ import numpy as np
 
 import nengo
 
-import ndmps_discrete_generalized
+from models import ndmps_discrete_generalized
 importlib.reload(ndmps_discrete_generalized)
-from ndmps_discrete_generalized import generate
+from models.ndmps_discrete_generalized import generate
 
 # input_signals = range(10)
 
@@ -13,15 +13,18 @@ from ndmps_discrete_generalized import generate
 model = nengo.Network()
 input_signal = 2
 
-# targets = [[1, 0], [1, 1], [0, 1], [-1, 1],
-#            [-1, 0], [-1, -1], [0, -1], [1, -1]]
-targets = [[.2, -.4]]#, [.5, -1], [1, -2]]
+# for rotating the trajectory
+targets = [[1, 0], [1, 1], [0, 1], [-1, 1],
+           [-1, 0], [-1, -1], [0, -1], [1, -1]]
+
+# for scaling the trajectory
+# targets = [[.2, -.4], [.5, -1], [1, -2]]
 
 for target in targets:
     with model:
 
         ndmps, goals = generate(
-            data_file='handwriting_trajectories/%s.npz' % input_signal)
+            data_file='models/handwriting_trajectories/%s.npz' % input_signal)
 
         print(goals)
         node_start = nengo.Node(output=[0, 0], label='start goal')
@@ -33,9 +36,9 @@ for target in targets:
 
         probe = nengo.Probe(ndmps.output, synapse=.01, sample_every=.01)
         probe_x_neurons = nengo.Probe(
-            ndmps.x.y.neurons, synapse=None)
+            ndmps.x.ydy.neurons, synapse=None)
         probe_y_neurons = nengo.Probe(
-            ndmps.y.y.neurons, synapse=None)
+            ndmps.y.ydy.neurons, synapse=None)
 
         sim = nengo.Simulator(model)
         sim.run(10)

@@ -3,16 +3,15 @@ import numpy as np
 import nengo
 import nengo.utils.function_space
 
-import forcing_functions
-import goal_network
-import point_attractor
+from . import forcing_functions
+from . import goal_network
+from . import point_attractor
 
 nengo.dists.Function = nengo.utils.function_space.Function
 nengo.FunctionSpace = nengo.utils.function_space.FunctionSpace
 
-alpha = 1000.0
-beta = alpha / 4.0
-def generate(data_folder, net=None):
+def generate(data_folder, net=None, alpha = 1000.0):
+    beta = alpha / 4.0
 
     # generate the Function Space
     forces, _, goals = forcing_functions.load_folder(
@@ -22,7 +21,6 @@ def generate(data_folder, net=None):
     # use this array as our space to perform svd over
     fs = nengo.FunctionSpace(space=force_space, n_basis=10)
     range_goals = np.array(range(len(goals)))
-    print(len(goals))
 
     # store the weights for each number
     weights_x = []
@@ -36,7 +34,7 @@ def generate(data_folder, net=None):
 
     if net is None:
         net = nengo.Network()
-    net.config[nengo.Ensemble].neuron_type = nengo.Direct()
+    # net.config[nengo.Ensemble].neuron_type = nengo.Direct()
     with net:
 
         time_func = lambda t: min(max((t * 2) % 4 - 2.5, -1), 1)
@@ -85,8 +83,8 @@ def generate(data_folder, net=None):
                 return weights_y[num]
 
         # generate weights for different numbers
-        dmp_weights_gen = nengo.Ensemble(n_neurons=2000, dimensions=1,)
-                                         # neuron_type=nengo.LIF())
+        dmp_weights_gen = nengo.Ensemble(n_neurons=2000, dimensions=1,
+                                         label='dmp_weights_gen')
         nengo.Connection(net.number, dmp_weights_gen)
         nengo.Connection(dmp_weights_gen, ff_x,
                          function=lambda x: dmp_weights_func(x, x_or_y='x'),

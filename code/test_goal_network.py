@@ -1,12 +1,13 @@
 import importlib
 import nengo
 
-import forcing_functions
-import goal_network
+from models import forcing_functions
+from models import goal_network
 importlib.reload(goal_network)
-from goal_network import generate
+from models.goal_network import generate
 
-forces, _, goals = forcing_functions.load_folder('trajectories', rhythmic=False)
+forces, _, goals = forcing_functions.load_folder(
+    'models/handwriting_trajectories', rhythmic=False)
 
 model = nengo.Network()
 with model:
@@ -19,18 +20,3 @@ with model:
     nengo.Connection(num_relay, gn.input)
     nengo.Connection(timer_node, gn.inhibit_node)
     probe = nengo.Probe(gn.output)
-
-# sim = nengo.Simulator(model)
-# sim.run(2)
-#
-# t = sim.trange()
-# plt.figure(figsize=(7, 3.5))
-# plt.plot(t, sim.data[probe_pos])
-# plt.plot(t, np.ones(t.shape[0]) * target, 'r--', lw=2)
-# plt.legend(['position', 'target position'])
-# plt.ylabel('state')
-# plt.xlabel('time (s)')
-#
-# plt.tight_layout()
-# plt.savefig('point_attractor.pdf', format='pdf')
-# plt.show()

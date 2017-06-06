@@ -5,19 +5,19 @@ import nengo.utils.function_space
 import nengo.spa as spa
 from nengo.spa import Vocabulary
 
-import forcing_functions
-import point_attractor
+from . import forcing_functions
+from . import point_attractor
 
 nengo.dists.Function = nengo.utils.function_space.Function
 nengo.FunctionSpace = nengo.utils.function_space.FunctionSpace
 
-
-def generate(input_signal):
+def generate(input_signal, alpha=1000.0):
+    beta = alpha / 4.0
 
     # Read in the class mean for numbers from vision network
-    weights_data = np.load('mnist_vision_data/params.npz')
+    weights_data = np.load('models/mnist_vision_data/params.npz')
     weights = weights_data['Wc']
-    means_data = np.load('mnist_vision_data/class_means.npz')
+    means_data = np.load('models/mnist_vision_data/class_means.npz')
     means = np.matrix(1.0 / means_data['means'])
     sps = np.multiply(weights.T, means.T)[:10]
     sps_labels = [
@@ -27,7 +27,8 @@ def generate(input_signal):
 
     # generate the Function Space
     forces, _, goals = forcing_functions.load_folder(
-        'handwriting_trajectories', rhythmic=False)
+        'models/handwriting_trajectories', rhythmic=False,
+        alpha=alpha, beta=beta)
     # make an array out of all the possible functions we want to represent
     force_space = np.vstack(forces)
     # use this array as our space to perform svd over
@@ -63,60 +64,51 @@ def generate(input_signal):
     # net.config[nengo.Ensemble].neuron_type = nengo.Direct()
     with net:
 
-        net.assoc_mem_x = spa.AssociativeMemory(
-            input_vocab=vocab_vision,
-            output_vocab=vocab_dmp_weights_x,
-            wta_output=False)
+        # def input_func(t):
+        #     return vocab_vision.parse(input_signal).v
+        # net.input = nengo.Node(input_func, label='input')
+        net.input = spa.State(dimensions, subdimensions=10,
+                              vocab=vocab_vision)
 
-        net.assoc_mem_y = spa.AssociativeMemory(
-            input_vocab=vocab_vision,
-            output_vocab=vocab_dmp_weights_y,
-            wta_output=False)
-
-        def input_func(t):
-            return vocab_vision.parse(input_signal).v
-        net.input = nengo.Node(input_func)
-        # net.input = spa.State(dimensions, subdimensions=10,
-        #                       vocab=vocab_vision)
-
-        nengo.Connection(net.input, net.assoc_mem_x.input)
-        nengo.Connection(net.input, net.assoc_mem_y.input)
-
-
-        time_func = lambda t: min(max((t * 1) % 4 - 2.5, -1), 1)
-        timer_node = nengo.Node(output=time_func)
+        time_func = lambda t: min(max((t * 2) % 4 - 2.5, -1), 1)
+        timer_node = nengo.Node(output=time_func, label='timer')
         # ------------------- Point Attractors --------------------
 
         def goals_func(t, x):
             if (x[0] + 1) < 1e-5:
                 return x[1], x[2]
             return x[3], x[4]
-        goal_node = nengo.Node(goals_func, size_in=5, size_out=2)
+        goal_node = nengo.Node(goals_func, size_in=5, size_out=2,
+                               label='goals')
         nengo.Connection(timer_node, goal_node[0])
-        nengo.Connection(net.assoc_mem_x.output[[-2, -1]], goal_node[[1, 3]])
-        nengo.Connection(net.assoc_mem_y.output[[-2, -1]], goal_node[[2, 4]])
 
-        net.x = point_attractor.generate(goal_node[0], n_neurons=1000)
-        net.y = point_attractor.generate(goal_node[1], n_neurons=1000)
+        net.x = point_attractor.generate(
+            n_neurons=1000, alpha=alpha, beta=beta)
+        nengo.Connection(goal_node[0], net.x.input[0], synapse=None)
+        net.y = point_attractor.generate(
+            n_neurons=1000, alpha=alpha, beta=beta)
+        nengo.Connection(goal_node[1], net.y.input[0], synapse=None)
 
         # -------------------- Ramp ------------------------------
-        ramp_node = nengo.Node(output=time_func)
+        ramp_node = nengo.Node(output=time_func, label='ramp node')
         ramp = nengo.Ensemble(n_neurons=1000, dimensions=1, label='ramp')
         nengo.Connection(ramp_node, ramp)
 
         # ------------------- Forcing Functions --------------------
 
-        # n_basis_functions dimensions to represent the weights, + 1 to
-        # represent the x position to decode from
-        ff_x = nengo.Ensemble(n_neurons=1000,
-                              dimensions=fs.n_basis,
-                              radius=np.sqrt(fs.n_basis))
-        ff_y = nengo.Ensemble(n_neurons=1000,
-                              dimensions=fs.n_basis,
-                              radius=np.sqrt(fs.n_basis))
+        net.assoc_mem_x = spa.AssociativeMemory(
+            input_vocab=vocab_vision,
+            output_vocab=vocab_dmp_weights_x,
+            wta_output=False)
+        nengo.Connection(net.input.output, net.assoc_mem_x.input)
+        nengo.Connection(net.assoc_mem_x.output[[-2, -1]], goal_node[[1, 3]])
 
-        nengo.Connection(net.assoc_mem_x.output[:fs.n_basis], ff_x, synapse=.01)
-        nengo.Connection(net.assoc_mem_y.output[:fs.n_basis], ff_y, synapse=.01)
+        net.assoc_mem_y = spa.AssociativeMemory(
+            input_vocab=vocab_vision,
+            output_vocab=vocab_dmp_weights_y,
+            wta_output=False)
+        nengo.Connection(net.input.output, net.assoc_mem_y.input)
+        nengo.Connection(net.assoc_mem_y.output[[-2, -1]], goal_node[[2, 4]])
 
         # -------------------- Product for decoding -----------------------
 
@@ -124,18 +116,19 @@ def generate(input_signal):
         nengo.networks.Product(n_neurons=1000,
                                dimensions=fs.n_basis,
                                net=net.product_x,
-                               input_magnitude=2.0)
+                               input_magnitude=1.0)
         net.product_y = nengo.Network('Product Y')
         nengo.networks.Product(n_neurons=1000,
                                dimensions=fs.n_basis,
                                net=net.product_y,
-                               input_magnitude=2.0)
+                               input_magnitude=1.0)
 
         # get the largest basis function value for normalization
         max_basis = np.max(fs.basis*fs.scale)
         domain = np.linspace(-1, 1, fs.basis.shape[0])
 
-        for ff, product in zip([ff_x, ff_y], [net.product_x, net.product_y]):
+        for ff, product in zip([net.assoc_mem_x.output, net.assoc_mem_y.output],
+                               [net.product_x, net.product_y]):
             for ii in range(fs.n_basis):
                 # find the value of a basis function at a value of x
                 def basis_fn(x, jj=ii):
@@ -151,26 +144,30 @@ def generate(input_signal):
             if t <= -1:
                 return [0, 0]
             return x
-        relay = nengo.Node(output=relay_func, size_in=2, size_out=2)
+        relay = nengo.Node(output=relay_func, size_in=2, size_out=2,
+                           label='relay')
 
         nengo.Connection(net.product_x.output, relay[0],
-                         transform=np.ones((1, fs.n_basis)) * max_basis)
+                         transform=np.ones((1, fs.n_basis)) * max_basis,
+                         synapse=None)
         nengo.Connection(net.product_y.output, relay[1],
-                         transform=np.ones((1, fs.n_basis)) * max_basis)
+                         transform=np.ones((1, fs.n_basis)) * max_basis,
+                         synapse=None)
 
-        nengo.Connection(relay[0], net.x.input, synapse=None)
-        nengo.Connection(relay[1], net.y.input, synapse=None)
+        nengo.Connection(relay[0], net.x.input[1], synapse=None)
+        nengo.Connection(relay[1], net.y.input[1], synapse=None)
 
         # -------------------- Output ------------------------------
 
         net.output = nengo.Node(size_in=2, size_out=2)
-        nengo.Connection(net.x.output, net.output[0], synapse=None)
-        nengo.Connection(net.y.output, net.output[1], synapse=None)
+        nengo.Connection(net.x.output, net.output[0], synapse=0.01)
+        nengo.Connection(net.y.output, net.output[1], synapse=0.01)
 
         # create a node to give a plot of the represented function
-        ff_plot = fs.make_plot_node(domain=domain, lines=2,
-                                    min_y=-75, max_y=75)
-        nengo.Connection(ff_x, ff_plot[:fs.n_basis], synapse=0.1)
-        nengo.Connection(ff_y, ff_plot[fs.n_basis:], synapse=0.1)
+        ff_plot = fs.make_plot_node(domain=domain, lines=2, ylim=[-75, 75])
+        nengo.Connection(net.assoc_mem_x.output[:fs.n_basis],
+                         ff_plot[:fs.n_basis], synapse=0.1)
+        nengo.Connection(net.assoc_mem_y.output[:fs.n_basis],
+                         ff_plot[fs.n_basis:], synapse=0.1)
 
     return net

@@ -5,14 +5,13 @@ import nengo
 import nengo.utils.function_space
 
 import importlib
-import point_attractor
+from . import point_attractor
 importlib.reload(point_attractor)
-import forcing_functions
+from . import forcing_functions
 
 
-alpha = 1000.0
-beta = alpha / 4.0
-def generate(data_file, net=None):
+def generate(data_file, net=None, alpha=1000.0):
+    beta = alpha / 4.0
 
     # generate the forcing function
     y_des = np.load(data_file)['arr_0'].T

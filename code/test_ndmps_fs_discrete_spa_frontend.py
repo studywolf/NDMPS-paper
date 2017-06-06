@@ -4,14 +4,14 @@ import itertools
 
 import nengo
 
-import ndmps_fs_discrete_spa_frontend
+from models import ndmps_fs_discrete_spa_frontend
 importlib.reload(ndmps_fs_discrete_spa_frontend)
-from ndmps_fs_discrete_spa_frontend import generate
+from models.ndmps_fs_discrete_spa_frontend import generate
 
-input_signals = ['ZERO', 'ONE', 'TWO', 'THREE', 'FOUR',
-                 'FIVE', 'SIX', 'SEVEN', 'EIGHT', 'NINE']
-input_signals += [" + ".join(x) for x in
-                 itertools.combinations(input_signals, 2)]
+input_signals = ['ZERO']#, 'ONE', 'TWO', 'THREE', 'FOUR',
+                 # 'FIVE', 'SIX', 'SEVEN', 'EIGHT', 'NINE']
+# input_signals += [" + ".join(x) for x in
+#                  itertools.combinations(input_signals, 2)]
 
 print(input_signals)
 
@@ -22,12 +22,12 @@ for input_signal in input_signals:
     with model:
         ndmps_d = generate(input_signal=input_signal)
         probe = nengo.Probe(ndmps_d.output, synapse=.01, sample_every=.005)
-        ndmps_d.product_x.sq1.add_neuron_output()
-        ndmps_d.product_y.sq1.add_neuron_output()
-        probe_product_x = nengo.Probe(
-            ndmps_d.product_x.sq1.neuron_output, synapse=None)
-        probe_product_y = nengo.Probe(
-            ndmps_d.product_y.sq1.neuron_output, synapse=None)
+        # ndmps_d.product_x.sq1.add_neuron_output()
+        # ndmps_d.product_y.sq1.add_neuron_output()
+        # probe_product_x = nengo.Probe(
+        #     ndmps_d.product_x.sq1.neuron_output, synapse=None)
+        # probe_product_y = nengo.Probe(
+        #     ndmps_d.product_y.sq1.neuron_output, synapse=None)
 
     sim = nengo.Simulator(model)
     sim.run(4)

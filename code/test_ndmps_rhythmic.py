@@ -4,15 +4,15 @@ import importlib
 
 import nengo
 
-import ndmps_rhythmic
+from models import ndmps_rhythmic
 importlib.reload(ndmps_rhythmic)
-from ndmps_rhythmic import generate
+from models.ndmps_rhythmic import generate
 
 target = .75
 model = nengo.Network()
 with model:
     center_points = nengo.Node(output=[0, 0])
-    ndmps_r = generate(data_file='trajectories/5.npz')
+    ndmps_r = generate(data_file='models/handwriting_trajectories/5.npz')
     nengo.Connection(center_points, ndmps_r.input)
     probe = nengo.Probe(ndmps_r.output, synapse=.1)
 

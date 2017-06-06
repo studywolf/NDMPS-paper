@@ -3,17 +3,18 @@ import numpy as np
 
 import nengo
 
-import ndmps_discrete
+from models import ndmps_discrete
 importlib.reload(ndmps_discrete)
-from ndmps_discrete import generate
+from models.ndmps_discrete import generate
 
+# change this number to draw different trajectories
 input_signals = [3]#range(10)
 
 for input_signal in input_signals:
     model = nengo.Network()
     with model:
         ndmps = generate(
-            data_file='handwriting_trajectories/%s.npz' % input_signal)
+            data_file='models/handwriting_trajectories/%s.npz' % input_signal)
         probe = nengo.Probe(ndmps.output, synapse=None, sample_every=.01)
         probe_ramp = nengo.Probe(ndmps.ramp)
         probe_ramp_neurons = nengo.Probe(
