@@ -105,7 +105,7 @@ def generate(data_file, alpha=1000.0):
         nengo.Connection(net.y.output, net.rotate[2], synapse=.01)
         nengo.Connection(net.goal_relay[4], net.rotate[0])
 
-        net.output = nengo.Node(size_in=2, size_out=2)
+        net.output = nengo.Node(size_in=2)
         nengo.Connection(net.rotate, net.output, function=rotate)
 
     return net, goals

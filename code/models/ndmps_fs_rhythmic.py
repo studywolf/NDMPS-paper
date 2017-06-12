@@ -15,17 +15,17 @@ def generate(data_folder, net=None, alpha=1000.0):
     beta = alpha / 4.0
 
     # generate the Function Space
-    trajectories, _, _ = forcing_functions.load_folder(
+    forces, _, _ = forcing_functions.load_folder(
         data_folder, rhythmic=True, alpha=alpha, beta=beta)
     # make an array out of all the possible functions we want to represent
-    force_space = np.vstack(trajectories)
+    force_space = np.vstack(forces)
     # use this array as our space to perform svd over
     fs = nengo.FunctionSpace(space=force_space, n_basis=10)
 
     # store the weights for each trajectory
     weights_x = []
     weights_y = []
-    for ii in range(len(trajectories)):
+    for ii in range(len(forces)):
         forces = force_space[ii*2:ii*2+2]
         # load up the forces to be output by the forcing function
         # calculate the corresponding weights over the basis functions
@@ -37,7 +37,7 @@ def generate(data_folder, net=None, alpha=1000.0):
     with net:
 
         # --------------------- Inputs --------------------------
-        net.input = nengo.Node(size_in=2, size_out=2, label='input')
+        net.input = nengo.Node(size_in=2, label='input')
 
         number = nengo.Node(output=[0], label='number')
 
@@ -59,7 +59,7 @@ def generate(data_folder, net=None, alpha=1000.0):
         # ------------------- Forcing Functions --------------------
 
         def dmp_weights_func(t, x):
-            x = int(min(max(x, 0), len(trajectories)))
+            x = int(min(max(x, 0), len(forces)))
             # load weights for generating this number's x and y forces
             return np.hstack([weights_x[x], weights_y[x]])
 
@@ -108,7 +108,7 @@ def generate(data_folder, net=None, alpha=1000.0):
 
         # -------------------- Output ------------------------------
 
-        net.output = nengo.Node(size_in=2, size_out=2, label='output')
+        net.output = nengo.Node(size_in=2, label='output')
         nengo.Connection(net.x.output, net.output[0])
         nengo.Connection(net.y.output, net.output[1])
 

@@ -54,8 +54,7 @@ def generate(data_file, net=None, alpha=1000.0):
                 return [0, 0]
             return x
         # the relay prevents forces from being sent when resetting
-        relay = nengo.Node(output=relay_func, size_in=2, size_out=2,
-                           label='relay gate')
+        relay = nengo.Node(output=relay_func, size_in=2, label='relay gate')
 
         domain = np.linspace(-1, 1, len(forces[0]))
         x_func = interpolate.interp1d(domain, forces[0])
@@ -67,7 +66,7 @@ def generate(data_file, net=None, alpha=1000.0):
 
         # -------------------- Output -------------------------------
 
-        net.output = nengo.Node(size_in=2, size_out=2)
+        net.output = nengo.Node(size_in=2)
         nengo.Connection(net.x.output, net.output[0], synapse=0.01)
         nengo.Connection(net.y.output, net.output[1], synapse=0.01)
 

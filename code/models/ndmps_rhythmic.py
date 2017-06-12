@@ -19,7 +19,7 @@ def generate(data_file, net=None, alpha=1000.0):
         net = nengo.Network(label='Rhythmic NDMP')
     with net:
         # --------------------- Inputs ------------------------------
-        net.input = nengo.Node(size_in=2, size_out=2)
+        net.input = nengo.Node(size_in=2)
 
         # ------------------- Point Attractors ----------------------
         x = point_attractor.generate(
@@ -42,7 +42,7 @@ def generate(data_file, net=None, alpha=1000.0):
         nengo.Connection(osc, y.input[1], synapse=None, **force_functions[1])
 
         # -------------------- Output -------------------------------
-        net.output = nengo.Node(size_in=2, size_out=2)
+        net.output = nengo.Node(size_in=2)
         nengo.Connection(x.output, net.output[0], synapse=None)
         nengo.Connection(y.output, net.output[1], synapse=None)
 

@@ -22,12 +22,12 @@ for input_signal in input_signals:
     with model:
         ndmps_d = generate(input_signal=input_signal)
         probe = nengo.Probe(ndmps_d.output, synapse=.01, sample_every=.005)
-        # ndmps_d.product_x.sq1.add_neuron_output()
-        # ndmps_d.product_y.sq1.add_neuron_output()
-        # probe_product_x = nengo.Probe(
-        #     ndmps_d.product_x.sq1.neuron_output, synapse=None)
-        # probe_product_y = nengo.Probe(
-        #     ndmps_d.product_y.sq1.neuron_output, synapse=None)
+        ndmps_d.product_x.sq1.add_neuron_output()
+        ndmps_d.product_y.sq1.add_neuron_output()
+        probe_product_x = nengo.Probe(
+            ndmps_d.product_x.sq1.neuron_output, synapse=None)
+        probe_product_y = nengo.Probe(
+            ndmps_d.product_y.sq1.neuron_output, synapse=None)
 
     sim = nengo.Simulator(model)
     sim.run(4)

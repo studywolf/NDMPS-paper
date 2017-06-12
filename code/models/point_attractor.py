@@ -45,12 +45,12 @@ def generate(net=None, n_neurons=200, alpha=1000.0, beta=1000.0/4.0,
         nengo.Connection(net.ydy, net.ydy, transform=A)
 
         # hook up input
-        net.input = nengo.Node(size_in=2, size_out=2)
+        net.input = nengo.Node(size_in=2)
         # set up Bu part of point attractor
         nengo.Connection(net.input, net.ydy, transform=B)
 
         # hook up output
-        net.output = nengo.Node(size_in=1, size_out=1)
+        net.output = nengo.Node(size_in=1)
         # add in forcing function
         nengo.Connection(net.ydy[0], net.output, synapse=None)
 

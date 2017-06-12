@@ -13,7 +13,7 @@ def generate(goals, n_neurons=2000, net=None):
         net = nengo.Network()
     with net:
 
-        net.input = nengo.Node(size_in=1, size_out=1)
+        net.input = nengo.Node(size_in=1)
 
         def inhibit_func(t, x):
             if abs(x + 1) < 1e-5:
@@ -36,7 +36,7 @@ def generate(goals, n_neurons=2000, net=None):
         nengo.Connection(net.input, goal_on, synapse=None)
         nengo.Connection(net.input, goal_off, synapse=None)
 
-        net.output = nengo.Node(size_in=2, size_out=2)
+        net.output = nengo.Node(size_in=2)
 
         # inhibit on or off population output, don't account for synapses twice
         nengo.Connection(net.inhibit_node[0], goal_on.neurons,

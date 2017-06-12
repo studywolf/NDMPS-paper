@@ -138,7 +138,7 @@ def generate(data_folder, net=None, alpha = 1000.0):
 
         # -------------------- Output ------------------------------
 
-        net.output = nengo.Node(size_in=2, size_out=2)
+        net.output = nengo.Node(size_in=2)
         nengo.Connection(net.x.output, net.output[0], synapse=0.01)
         nengo.Connection(net.y.output, net.output[1], synapse=0.01)
 
